@@ -1,5 +1,0 @@
-build
-.svelte-kit
-coverage
-node_modules
-pnpm-lock.yaml
