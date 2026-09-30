@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme - actual colors/typography live in Compose (ui/theme/Theme.kt).
+         This XML theme only needs to exist so the Activity has a splash-free, action-bar-free
+         window before Compose takes over. -->
+    <style name="Theme.MetroQuizParis" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

@@ -1,10 +1,20 @@
+*.iml
+.gradle
+/local.properties
+/.idea
 .DS_Store
-node_modules
 /build
-/.svelte-kit
-/dist
-/coverage
-/.vite
-*.local
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Android Studio generated files and folders
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# OS / editor
 *.log
-.idea
+*.local
