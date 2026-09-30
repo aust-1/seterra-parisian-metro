@@ -30,3 +30,16 @@ data class GameConfig(
     val scope: StationScope,
     val showLines: Boolean
 )
+
+/**
+ * A stable identifier for a [GameConfig], used as the key under which best scores are stored
+ * (so "QCM on line 1" and "QCM on all stations" keep separate high scores).
+ */
+fun GameConfig.storageKey(): String {
+    val scopePart = when (scope) {
+        is StationScope.AllStations -> "ALL"
+        is StationScope.Essentials -> "ESSENTIALS"
+        is StationScope.ByLines -> "LINES:" + scope.lineIds.sorted().joinToString(",")
+    }
+    return "${mode.name}|$scopePart|lines=${if (showLines) 1 else 0}"
+}
