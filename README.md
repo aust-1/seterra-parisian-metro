@@ -95,11 +95,10 @@ version de Gradle du projet, corrige-le dans Android Studio, pas dans le code :
 
 ## Check-list au premier build
 
-Le code a été écrit avec soin mais jamais compilé sur cette machine. À la première tentative :
-
-- [ ] Le Gradle Sync se termine sans erreur de résolution de dépendances.
-- [ ] `./gradlew test` passe (logique de jeu).
-- [ ] `./gradlew assembleDebug` compile l'appli.
-- [ ] L'appli s'installe et le zoom/pan de la carte se sent naturel au toucher (c'est la partie
-      la plus délicate à valider sans appareil physique - ajuste les bornes de zoom dans
-      `MetroMapCanvas.kt` si besoin).
+- [x] Le Gradle Sync se termine sans erreur de résolution de dépendances.
+- [x] `./gradlew test` passe (32/32, logique de jeu).
+- [x] `./gradlew assembleDebug` compile l'appli et produit `app-debug.apk`.
+- [ ] L'appli s'installe sur un téléphone et le zoom/pan de la carte se sent naturel au
+      toucher (c'est la partie la plus délicate à valider sans appareil physique - ajuste les
+      bornes de zoom dans `MetroMapCanvas.kt` si besoin).
+- [ ] Une partie complète dans chacun des 3 modes se joue sans accroc.
