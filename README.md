@@ -1,4 +1,4 @@
-# Métro Quiz Paris
+# Quiz Métro Paris
 
 Application Android native (Kotlin + Jetpack Compose), **100% hors connexion**, pour apprendre
 par cœur les stations du métro parisien - dans l'esprit de Seterra : plusieurs modes de jeu,
@@ -21,11 +21,6 @@ plusieurs niveaux de difficulté, style visuel simple.
 - Android SDK **35** (Android Studio te proposera de l'installer à la première ouverture si
   besoin - Outils > SDK Manager).
 
-> Cette machine de développement ne disposait pas d'Android Studio/SDK au moment de l'écriture
-> du code : celui-ci n'a donc **pas encore été compilé**. À la première ouverture dans Android
-> Studio, laisse le Gradle Sync se terminer et corrige les éventuelles erreurs de compilation
-> avant de continuer (voir la check-list en bas de ce fichier).
-
 ## Ouvrir le projet
 
 1. Android Studio → **Open** → sélectionner le dossier du projet.
@@ -37,7 +32,7 @@ plusieurs niveaux de difficulté, style visuel simple.
 Toute la logique de jeu (moteurs de quiz, scoring, normalisation des réponses, sélection des
 stations) est en Kotlin pur, testée sans dépendance Android :
 
-```
+```bash
 ./gradlew test
 ```
 
@@ -55,7 +50,7 @@ Pas de Play Store : on génère un APK et on l'installe directement.
 
 Alternative en une commande, téléphone branché en USB avec le débogage USB activé :
 
-```
+```bash
 ./gradlew installDebug
 ```
 
@@ -66,7 +61,7 @@ pour un usage strictement personnel.
 
 ## Structure du projet
 
-```
+```text
 app/src/main/java/com/parismetro/quiz/
 ├── domain/        logique métier pure (moteurs de quiz, scoring, modèles) - sans Android
 ├── data/          assets JSON + persistance Room (scores, stats)
@@ -83,6 +78,20 @@ et `scripts/generate-metro-data.py` (Python, stdlib uniquement) pour le script q
 Elles ne changent pas à l'exécution : il n'y a pas d'appel réseau pour les récupérer. Pour les
 régénérer un jour (nouvelle station, ligne prolongée...), retélécharger le GTFS depuis
 `downloadUrl` dans `metro-source.json` et relancer le script.
+
+## Problèmes courants
+
+**"The project's Gradle version X is incompatible with the Gradle JVM version Y"** - Android
+Studio utilise par défaut le JDK le plus récent trouvé sur la machine pour *exécuter* Gradle
+lui-même (pas pour compiler l'appli - ça, c'est réglé par `compileOptions` dans
+`app/build.gradle.kts` et reste en Java 17 quoi qu'il arrive). Si ce JDK est trop récent pour la
+version de Gradle du projet, corrige-le dans Android Studio, pas dans le code :
+
+1. **File → Settings** (ou **Android Studio → Preferences** sur Mac) →
+   **Build, Execution, Deployment → Build Tools → Gradle**.
+2. Champ **Gradle JDK** → choisir le JDK 17 installé (ou **Add JDK...** et pointer vers son
+   dossier d'installation s'il n'apparaît pas dans la liste).
+3. **OK**, puis relancer le Gradle Sync (icône éléphant, ou le bandeau qui propose de resync).
 
 ## Check-list au premier build
 
