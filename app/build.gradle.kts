@@ -37,6 +37,8 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // TopAppBar, FilterChip, etc. are still marked experimental in this Material3 version.
+        freeCompilerArgs += listOf("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
     }
 
     buildFeatures {
