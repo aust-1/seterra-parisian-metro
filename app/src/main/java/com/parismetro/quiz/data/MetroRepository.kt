@@ -4,6 +4,8 @@ import android.content.Context
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.Station
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -18,6 +20,7 @@ import kotlinx.serialization.json.Json
 class MetroRepository(private val context: Context) {
 
     private val json = Json { ignoreUnknownKeys = true }
+    private val loadMutex = Mutex()
 
     @Volatile
     private var cachedStations: List<Station>? = null
@@ -28,15 +31,20 @@ class MetroRepository(private val context: Context) {
     suspend fun getStations(): List<Station> = cachedStations ?: load().first
     suspend fun getLines(): List<MetroLine> = cachedLines ?: load().second
 
-    private suspend fun load(): Pair<List<Station>, List<MetroLine>> = withContext(Dispatchers.IO) {
-        val stations = readAsset("metro-data/stations.json")
-            .let { json.decodeFromString<List<Station>>(it) }
-        val lines = readAsset("metro-data/lines.json")
-            .let { json.decodeFromString<List<MetroLine>>(it) }
+    /** Guarded by [loadMutex] so two concurrent first-callers don't both parse the assets. */
+    private suspend fun load(): Pair<List<Station>, List<MetroLine>> = loadMutex.withLock {
+        cachedStations?.let { stations -> return@withLock stations to (cachedLines ?: emptyList()) }
 
-        cachedStations = stations
-        cachedLines = lines
-        stations to lines
+        withContext(Dispatchers.IO) {
+            val stations = readAsset("metro-data/stations.json")
+                .let { json.decodeFromString<List<Station>>(it) }
+            val lines = readAsset("metro-data/lines.json")
+                .let { json.decodeFromString<List<MetroLine>>(it) }
+
+            cachedStations = stations
+            cachedLines = lines
+            stations to lines
+        }
     }
 
     private fun readAsset(path: String): String =
