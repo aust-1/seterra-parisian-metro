@@ -13,6 +13,7 @@ val MetroSurfaceDark = Color(0xFF10151C)
 val CorrectGreen = Color(0xFF2E7D32)
 val IncorrectRed = Color(0xFFC62828)
 val HighlightAmber = Color(0xFFFFB300)
+val MissOrange = Color(0xFFEF6C00)
 
 // Geographic context on the map itself - deliberately muted so the colorful metro lines (drawn
 // on top) stay the clear focal point; these just help the map read as "Paris" at a glance.

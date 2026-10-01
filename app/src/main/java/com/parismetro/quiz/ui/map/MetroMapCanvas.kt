@@ -31,6 +31,7 @@ import com.parismetro.quiz.domain.model.Station
 import com.parismetro.quiz.ui.theme.CorrectGreen
 import com.parismetro.quiz.ui.theme.HighlightAmber
 import com.parismetro.quiz.ui.theme.IncorrectRed
+import com.parismetro.quiz.ui.theme.MissOrange
 import com.parismetro.quiz.ui.theme.PeripheriqueGray
 import com.parismetro.quiz.ui.theme.SeineBlue
 import kotlin.math.min
@@ -46,6 +47,10 @@ import kotlin.math.min
  * @param interactive when true (map-click mode), taps resolve to [onStationTapped] /
  *   [onMapMissed]; when false (QCM / type-answer modes) the map is pan/zoom-only, used just to
  *   show [highlightedStationId] in context.
+ * @param correctStationId drawn solid green - the player found it.
+ * @param revealedStationId drawn blinking red - the player ran out of attempts; per Seterra,
+ *   this doesn't auto-advance, tapping this exact station (while still [interactive]) is what
+ *   the caller wires up to move on.
  */
 @Composable
 fun MetroMapCanvas(
@@ -55,6 +60,7 @@ fun MetroMapCanvas(
     showLines: Boolean = true,
     highlightedStationId: String? = null,
     correctStationId: String? = null,
+    revealedStationId: String? = null,
     missMarkers: List<MissMarker> = emptyList(),
     interactive: Boolean = false,
     onStationTapped: (Station) -> Unit = {},
@@ -74,6 +80,13 @@ fun MetroMapCanvas(
         targetValue = 24f,
         animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
         label = "pulse-radius"
+    )
+    val blink = rememberInfiniteTransition(label = "revealed-blink")
+    val blinkAlpha by blink.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.15f,
+        animationSpec = infiniteRepeatable(tween(350), RepeatMode.Reverse),
+        label = "blink-alpha"
     )
 
     Canvas(
@@ -170,8 +183,8 @@ fun MetroMapCanvas(
         missMarkers.forEach { marker ->
             val center = toScreen(marker.x, marker.y)
             val arm = 8f
-            drawLine(IncorrectRed, center + Offset(-arm, -arm), center + Offset(arm, arm), strokeWidth = 4f)
-            drawLine(IncorrectRed, center + Offset(-arm, arm), center + Offset(arm, -arm), strokeWidth = 4f)
+            drawLine(MissOrange, center + Offset(-arm, -arm), center + Offset(arm, arm), strokeWidth = 4f)
+            drawLine(MissOrange, center + Offset(-arm, arm), center + Offset(arm, -arm), strokeWidth = 4f)
         }
 
         highlightedStationId?.let { id ->
@@ -185,6 +198,13 @@ fun MetroMapCanvas(
         correctStationId?.let { id ->
             stationsById[id]?.let { station ->
                 drawCircle(color = CorrectGreen, radius = 9f * dotScaleFactor, center = toScreen(station.x, station.y))
+            }
+        }
+
+        revealedStationId?.let { id ->
+            stationsById[id]?.let { station ->
+                val center = toScreen(station.x, station.y)
+                drawCircle(color = IncorrectRed.copy(alpha = blinkAlpha), radius = 10f * dotScaleFactor, center = center)
             }
         }
     }

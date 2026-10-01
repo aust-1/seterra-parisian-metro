@@ -12,6 +12,7 @@ import com.parismetro.quiz.domain.engine.AnswerQuizEngine
 import com.parismetro.quiz.domain.engine.AnswerQuizState
 import com.parismetro.quiz.domain.engine.DistractorPicker
 import com.parismetro.quiz.domain.engine.GameStatus
+import com.parismetro.quiz.domain.engine.GuessOutcome
 import com.parismetro.quiz.domain.engine.MapClickQuizEngine
 import com.parismetro.quiz.domain.engine.MapClickQuizState
 import com.parismetro.quiz.domain.engine.QuestionStatus
@@ -22,10 +23,18 @@ import com.parismetro.quiz.domain.model.MapPoint
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.Station
 import com.parismetro.quiz.domain.model.storageKey
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 private const val QCM_OPTION_COUNT = 4
+
+// Seterra-style pacing: a correct answer advances almost immediately (just long enough to
+// register the green flash); a wrong QCM/type answer lingers a bit longer so the correct name
+// can be read. Map-click mode's "revealed" state never auto-advances - see onStationTapped.
+private const val CORRECT_ADVANCE_DELAY_MS = 500L
+private const val INCORRECT_ADVANCE_DELAY_MS = 1300L
 
 /**
  * Drives one game session. Internally this delegates to [MapClickQuizEngine] or
@@ -49,6 +58,8 @@ class GameViewModel(
     private var answerState: AnswerQuizState? = null
     private var currentOptions: List<Station> = emptyList()
     private var selectedOptionId: String? = null
+    private var lastWrongStationName: String? = null
+    private var autoAdvanceJob: Job? = null
     private val missedStationIds = mutableListOf<String>()
 
     init {
@@ -73,13 +84,28 @@ class GameViewModel(
 
     fun onStationTapped(station: Station) {
         val state = mapClickState ?: return
+        val question = state.currentQuestion ?: return
+
+        if (question.status == QuestionStatus.REVEALED) {
+            // Once the answer is revealed, only tapping that exact station moves things on -
+            // Seterra's "blinks until you click it" acknowledgement, not a generic button.
+            if (station.id == question.stationId) onContinue()
+            return
+        }
+
+        lastWrongStationName = station.id.takeIf { it != question.stationId }?.let { station.name }
         val result = MapClickQuizEngine.submitStationGuess(state, station.id, MapPoint(station.x, station.y))
         mapClickState = result.state
         publishMapClickState()
+        if (result.outcome == GuessOutcome.CORRECT) scheduleAutoAdvance(CORRECT_ADVANCE_DELAY_MS)
     }
 
     fun onMapMissed(point: MapPoint) {
         val state = mapClickState ?: return
+        val question = state.currentQuestion ?: return
+        if (question.status == QuestionStatus.REVEALED) return
+
+        lastWrongStationName = null
         mapClickState = MapClickQuizEngine.submitMapMiss(state, point).state
         publishMapClickState()
     }
@@ -102,11 +128,14 @@ class GameViewModel(
         val state = answerState ?: return
         answerState = AnswerQuizEngine.submitAnswer(state, isCorrect).state
         publishAnswerState()
+        scheduleAutoAdvance(if (isCorrect) CORRECT_ADVANCE_DELAY_MS else INCORRECT_ADVANCE_DELAY_MS)
     }
 
     // ----- Shared -----
 
-    /** Called by the "next station" button once the current question is resolved. */
+    /** Advances to the next question. Auto-scheduled after a delay - see [scheduleAutoAdvance] -
+     * except for map-click's REVEALED state, which instead calls this directly from
+     * [onStationTapped] once the player taps the (blinking) correct station. */
     fun onContinue() {
         if (config.mode == GameMode.MAP_CLICK) {
             val state = mapClickState ?: return
@@ -114,6 +143,7 @@ class GameViewModel(
             if (question.status == QuestionStatus.GUESSING) return
 
             recordResolution(question.stationId, question.status == QuestionStatus.CORRECT, question.missCount)
+            lastWrongStationName = null
             val next = MapClickQuizEngine.goToNextQuestion(state)
             mapClickState = next
             if (next.status == GameStatus.COMPLETED) finishSession(next.score, next.stationQueue.size) else publishMapClickState()
@@ -131,6 +161,15 @@ class GameViewModel(
                 refreshOptionsForCurrentQuestion()
                 publishAnswerState()
             }
+        }
+    }
+
+    /** Replaces an explicit "Continuer" button: resolve, show color feedback, move on by itself. */
+    private fun scheduleAutoAdvance(delayMs: Long) {
+        autoAdvanceJob?.cancel()
+        autoAdvanceJob = viewModelScope.launch {
+            delay(delayMs)
+            onContinue()
         }
     }
 
@@ -170,7 +209,9 @@ class GameViewModel(
             targetStationName = target.name,
             missMarkers = question.missMarkers,
             status = question.status,
-            resolvedStationId = if (question.status == QuestionStatus.GUESSING) null else question.stationId,
+            correctStationId = if (question.status == QuestionStatus.CORRECT) question.stationId else null,
+            revealedStationId = if (question.status == QuestionStatus.REVEALED) question.stationId else null,
+            lastWrongStationName = lastWrongStationName,
             score = state.score,
             progress = (state.currentIndex + 1) to state.stationQueue.size
         )

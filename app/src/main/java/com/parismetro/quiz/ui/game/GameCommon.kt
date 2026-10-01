@@ -4,12 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,12 +29,14 @@ fun GameHeader(score: Int, progress: Pair<Int, Int>, modifier: Modifier = Modifi
     }
 }
 
-/** Shown once a question is resolved (correct, wrong, or auto-revealed) with a way to continue. */
+/**
+ * Shown once a question is resolved - a passive color flash, Seterra-style: no button, the
+ * [GameViewModel] moves on by itself shortly after (see `scheduleAutoAdvance`).
+ */
 @Composable
 fun ResolutionBanner(
     status: QuestionStatus,
     correctAnswerName: String,
-    onContinue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isCorrect = status == QuestionStatus.CORRECT
@@ -44,17 +44,12 @@ fun ResolutionBanner(
         color = (if (isCorrect) CorrectGreen else IncorrectRed).copy(alpha = 0.15f),
         modifier = modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
             Text(
                 text = if (isCorrect) "Bravo !" else "Raté - c'était $correctAnswerName",
                 color = if (isCorrect) CorrectGreen else IncorrectRed,
                 fontWeight = FontWeight.Bold
             )
-            Button(onClick = onContinue) { Text("Continuer") }
         }
     }
 }

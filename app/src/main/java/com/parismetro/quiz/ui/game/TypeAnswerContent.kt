@@ -28,8 +28,7 @@ import com.parismetro.quiz.ui.map.MetroMapCanvas
 @Composable
 fun TypeAnswerContent(
     state: GameUiState.Answer,
-    onSubmit: (String) -> Unit,
-    onContinue: () -> Unit
+    onSubmit: (String) -> Unit
 ) {
     var text by rememberSaveable(state.progress) { mutableStateOf("") }
     val answered = state.status != QuestionStatus.GUESSING
@@ -73,7 +72,7 @@ fun TypeAnswerContent(
             }
         }
         if (answered) {
-            ResolutionBanner(state.status, state.correctStationName, onContinue)
+            ResolutionBanner(state.status, state.correctStationName)
         }
     }
 }

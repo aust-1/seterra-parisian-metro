@@ -63,20 +63,17 @@ fun GameScreen(
                 is GameUiState.MapClick -> MapClickContent(
                     state = currentState,
                     onStationTapped = viewModel::onStationTapped,
-                    onMapMissed = viewModel::onMapMissed,
-                    onContinue = viewModel::onContinue
+                    onMapMissed = viewModel::onMapMissed
                 )
 
                 is GameUiState.Answer -> when (currentState.gameMode) {
                     GameMode.MULTIPLE_CHOICE -> QcmContent(
                         state = currentState,
-                        onOptionSelected = viewModel::onOptionSelected,
-                        onContinue = viewModel::onContinue
+                        onOptionSelected = viewModel::onOptionSelected
                     )
                     else -> TypeAnswerContent(
                         state = currentState,
-                        onSubmit = viewModel::onTypedAnswerSubmitted,
-                        onContinue = viewModel::onContinue
+                        onSubmit = viewModel::onTypedAnswerSubmitted
                     )
                 }
 

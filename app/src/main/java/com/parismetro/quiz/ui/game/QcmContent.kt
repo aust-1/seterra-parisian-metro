@@ -23,8 +23,7 @@ import com.parismetro.quiz.ui.theme.IncorrectRed
 @Composable
 fun QcmContent(
     state: GameUiState.Answer,
-    onOptionSelected: (Station) -> Unit,
-    onContinue: () -> Unit
+    onOptionSelected: (Station) -> Unit
 ) {
     val answered = state.status != QuestionStatus.GUESSING
 
@@ -69,7 +68,7 @@ fun QcmContent(
             }
         }
         if (answered) {
-            ResolutionBanner(state.status, state.correctStationName, onContinue)
+            ResolutionBanner(state.status, state.correctStationName)
         }
     }
 }

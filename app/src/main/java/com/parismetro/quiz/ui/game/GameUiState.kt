@@ -19,8 +19,12 @@ sealed interface GameUiState {
         val targetStationName: String,
         val missMarkers: List<MissMarker>,
         val status: QuestionStatus,
-        /** The target station's id once [status] is no longer GUESSING, else null. */
-        val resolvedStationId: String?,
+        /** Set when [status] is CORRECT - drawn green on the map. */
+        val correctStationId: String?,
+        /** Set when [status] is REVEALED - drawn blinking red; tapping it is what continues. */
+        val revealedStationId: String?,
+        /** Name of the (wrong) station the player's last tap landed on, cleared each question. */
+        val lastWrongStationName: String?,
         val score: Int,
         val progress: Pair<Int, Int>
     ) : GameUiState
