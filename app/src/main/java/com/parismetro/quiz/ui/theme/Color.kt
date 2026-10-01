@@ -23,3 +23,4 @@ val FOUND_STATION_COLORS = listOf(CorrectGreen, FoundYellow, MissOrange, Incorre
 // on top) stay the clear focal point; these just help the map read as "Paris" at a glance.
 val SeineBlue = Color(0xFFA9D3E8)
 val PeripheriqueGray = Color(0xFFAFAFAF)
+val ArrondissementGray = Color(0xFFC9C9C9)

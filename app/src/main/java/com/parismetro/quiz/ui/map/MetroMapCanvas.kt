@@ -34,6 +34,7 @@ import com.parismetro.quiz.domain.model.MapPoint
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.MissMarker
 import com.parismetro.quiz.domain.model.Station
+import com.parismetro.quiz.ui.theme.ArrondissementGray
 import com.parismetro.quiz.ui.theme.CorrectGreen
 import com.parismetro.quiz.ui.theme.FOUND_STATION_COLORS
 import com.parismetro.quiz.ui.theme.HighlightAmber
@@ -82,6 +83,13 @@ fun MetroMapCanvas(
     val stationsById = remember(stations) { stations.associateBy { it.id } }
     val seinePoints = remember { SEINE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
     val peripheriquePoints = remember { PERIPHERIQUE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
+    val arrondissements = remember {
+        ARRONDISSEMENTS.map { (num, points) ->
+            val offsets = points.map { (x, y) -> Offset(x, y) }
+            val centroid = Offset(offsets.sumOf { it.x.toDouble() }.toFloat() / offsets.size, offsets.sumOf { it.y.toDouble() }.toFloat() / offsets.size)
+            Triple(num, offsets, centroid)
+        }
+    }
     val textMeasurer = rememberTextMeasurer()
 
     var scale by remember { mutableFloatStateOf(1f) }
@@ -149,6 +157,20 @@ fun MetroMapCanvas(
         val dotScaleFactor = scale.coerceIn(0.6f, 2.5f)
 
         // Geographic context, drawn first so every line/station sits visually on top of it.
+        arrondissements.forEach { (num, points, centroid) ->
+            drawPath(
+                path = polygonPath(points.map { toScreen(it.x, it.y) }),
+                color = ArrondissementGray,
+                style = Stroke(width = (1.2f * scale).coerceIn(0.5f, 2f))
+            )
+            val labelCenter = toScreen(centroid.x, centroid.y)
+            val label = textMeasurer.measure(num.toString(), style = TextStyle(color = ArrondissementGray, fontSize = 11.sp))
+            drawText(
+                textLayoutResult = label,
+                topLeft = Offset(labelCenter.x - label.size.width / 2f, labelCenter.y - label.size.height / 2f)
+            )
+        }
+
         drawPath(
             path = smoothPath(seinePoints.map { toScreen(it.x, it.y) }, closed = false),
             color = SeineBlue,
@@ -245,6 +267,18 @@ fun MetroMapCanvas(
             }
         }
     }
+}
+
+/** A closed straight-edge polygon through [points] - used for arrondissement borders, which are
+ * already simplified to the point density they need, unlike the hand-picked Seine/ring-road
+ * waypoints that benefit from [smoothPath]'s curve. */
+private fun polygonPath(points: List<Offset>): Path {
+    val path = Path()
+    if (points.isEmpty()) return path
+    path.moveTo(points[0].x, points[0].y)
+    for (i in 1 until points.size) path.lineTo(points[i].x, points[i].y)
+    path.close()
+    return path
 }
 
 private fun squaredDistance(x1: Float, y1: Float, x2: Float, y2: Float): Float {
