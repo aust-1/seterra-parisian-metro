@@ -17,6 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -27,6 +31,8 @@ import com.parismetro.quiz.domain.model.Station
 import com.parismetro.quiz.ui.theme.CorrectGreen
 import com.parismetro.quiz.ui.theme.HighlightAmber
 import com.parismetro.quiz.ui.theme.IncorrectRed
+import com.parismetro.quiz.ui.theme.PeripheriqueGray
+import com.parismetro.quiz.ui.theme.SeineBlue
 import kotlin.math.min
 
 /**
@@ -55,6 +61,8 @@ fun MetroMapCanvas(
     onMapMissed: (MapPoint) -> Unit = {}
 ) {
     val stationsById = remember(stations) { stations.associateBy { it.id } }
+    val seinePoints = remember { SEINE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
+    val peripheriquePoints = remember { PERIPHERIQUE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -113,6 +121,26 @@ fun MetroMapCanvas(
         fun toScreen(x: Float, y: Float) = Offset(offset.x + x * scale, offset.y + y * scale)
         val dotScaleFactor = scale.coerceIn(0.6f, 2.5f)
 
+        // Geographic context, drawn first so every line/station sits visually on top of it.
+        drawPath(
+            path = smoothPath(seinePoints.map { toScreen(it.x, it.y) }, closed = false),
+            color = SeineBlue,
+            style = Stroke(
+                width = (20f * scale).coerceIn(5f, 34f),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+        drawPath(
+            path = smoothPath(peripheriquePoints.map { toScreen(it.x, it.y) }, closed = true),
+            color = PeripheriqueGray,
+            style = Stroke(
+                width = (3f * scale).coerceIn(1f, 5f),
+                join = StrokeJoin.Round,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 10f), 0f)
+            )
+        )
+
         if (showLines) {
             lines.forEach { line ->
                 val color = parseHexColor(line.color)
@@ -166,4 +194,33 @@ private fun squaredDistance(x1: Float, y1: Float, x2: Float, y2: Float): Float {
     val dx = x1 - x2
     val dy = y1 - y2
     return dx * dx + dy * dy
+}
+
+/**
+ * A smooth curve through [points] (quadratic Bézier through each point, ending at the midpoint
+ * to the next one) rather than sharp straight segments - good enough to read as a winding river
+ * or a ring road without needing real spline/GPS data. [closed] wraps the curve back to the
+ * start instead of ending at the last point.
+ */
+private fun smoothPath(points: List<Offset>, closed: Boolean): Path {
+    val path = Path()
+    if (points.isEmpty()) return path
+    if (points.size < 3) {
+        path.moveTo(points.first().x, points.first().y)
+        points.drop(1).forEach { path.lineTo(it.x, it.y) }
+        if (closed) path.close()
+        return path
+    }
+
+    // Looping back through the first couple of points lets the curve exit the wrap-around
+    // seam smoothly instead of with a sharp corner.
+    val pts = if (closed) points + points[0] + points[1] else points
+    path.moveTo(pts[0].x, pts[0].y)
+    for (i in 1 until pts.size - 1) {
+        val mid = Offset((pts[i].x + pts[i + 1].x) / 2f, (pts[i].y + pts[i + 1].y) / 2f)
+        path.quadraticTo(pts[i].x, pts[i].y, mid.x, mid.y)
+    }
+    path.lineTo(pts.last().x, pts.last().y)
+    if (closed) path.close()
+    return path
 }
