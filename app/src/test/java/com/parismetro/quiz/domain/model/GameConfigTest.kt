@@ -15,11 +15,15 @@ class GameConfigTest {
     }
 
     @Test
-    fun `storage key distinguishes mode, scope and line visibility`() {
+    fun `storage key distinguishes mode, scope, line visibility and found-stations display`() {
         val base = GameConfig(GameMode.MULTIPLE_CHOICE, StationScope.AllStations, showLines = true)
 
         assertNotEquals(base.storageKey(), base.copy(mode = GameMode.TYPE_ANSWER).storageKey())
         assertNotEquals(base.storageKey(), base.copy(scope = StationScope.Essentials).storageKey())
         assertNotEquals(base.storageKey(), base.copy(showLines = false).storageKey())
+        assertNotEquals(
+            base.storageKey(),
+            base.copy(foundStationsDisplay = FoundStationsDisplay.COLORED_LOCKED).storageKey()
+        )
     }
 }

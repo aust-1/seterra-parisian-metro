@@ -23,8 +23,14 @@ sealed interface GameUiState {
         val correctStationId: String?,
         /** Set when [status] is REVEALED - drawn blinking red; tapping it is what continues. */
         val revealedStationId: String?,
-        /** Name of the (wrong) station the player's last tap landed on, cleared each question. */
-        val lastWrongStationName: String?,
+        /** Id of the (wrong) station the player's last tap landed on, cleared each question. */
+        val lastWrongStationId: String?,
+        /**
+         * Previously-resolved stations this session, station id -> miss count (0-2, or
+         * [com.parismetro.quiz.domain.engine.MAX_MISSES] for a reveal) - only populated when
+         * [com.parismetro.quiz.domain.model.FoundStationsDisplay.COLORED_LOCKED] is on.
+         */
+        val foundStations: Map<String, Int>,
         val score: Int,
         val progress: Pair<Int, Int>
     ) : GameUiState

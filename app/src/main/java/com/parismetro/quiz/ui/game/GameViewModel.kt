@@ -17,6 +17,7 @@ import com.parismetro.quiz.domain.engine.MapClickQuizEngine
 import com.parismetro.quiz.domain.engine.MapClickQuizState
 import com.parismetro.quiz.domain.engine.QuestionStatus
 import com.parismetro.quiz.domain.engine.StationScopeResolver
+import com.parismetro.quiz.domain.model.FoundStationsDisplay
 import com.parismetro.quiz.domain.model.GameConfig
 import com.parismetro.quiz.domain.model.GameMode
 import com.parismetro.quiz.domain.model.MapPoint
@@ -58,9 +59,13 @@ class GameViewModel(
     private var answerState: AnswerQuizState? = null
     private var currentOptions: List<Station> = emptyList()
     private var selectedOptionId: String? = null
-    private var lastWrongStationName: String? = null
+    private var lastWrongStationId: String? = null
     private var autoAdvanceJob: Job? = null
     private val missedStationIds = mutableListOf<String>()
+
+    /** Map-click only: stationId -> miss count (MAX_MISSES means revealed), for the "found
+     * stations stay colored and locked" difficulty option. */
+    private val foundStationResults = mutableMapOf<String, Int>()
 
     init {
         viewModelScope.launch {
@@ -93,7 +98,13 @@ class GameViewModel(
             return
         }
 
-        lastWrongStationName = station.id.takeIf { it != question.stationId }?.let { station.name }
+        if (config.foundStationsDisplay == FoundStationsDisplay.COLORED_LOCKED &&
+            foundStationResults.containsKey(station.id)
+        ) {
+            return // already found and locked - behaves like it isn't there
+        }
+
+        lastWrongStationId = station.id.takeIf { it != question.stationId }
         val result = MapClickQuizEngine.submitStationGuess(state, station.id, MapPoint(station.x, station.y))
         mapClickState = result.state
         publishMapClickState()
@@ -105,7 +116,7 @@ class GameViewModel(
         val question = state.currentQuestion ?: return
         if (question.status == QuestionStatus.REVEALED) return
 
-        lastWrongStationName = null
+        lastWrongStationId = null
         mapClickState = MapClickQuizEngine.submitMapMiss(state, point).state
         publishMapClickState()
     }
@@ -143,7 +154,8 @@ class GameViewModel(
             if (question.status == QuestionStatus.GUESSING) return
 
             recordResolution(question.stationId, question.status == QuestionStatus.CORRECT, question.missCount)
-            lastWrongStationName = null
+            foundStationResults[question.stationId] = question.missCount
+            lastWrongStationId = null
             val next = MapClickQuizEngine.goToNextQuestion(state)
             mapClickState = next
             if (next.status == GameStatus.COMPLETED) finishSession(next.score, next.stationQueue.size) else publishMapClickState()
@@ -211,7 +223,12 @@ class GameViewModel(
             status = question.status,
             correctStationId = if (question.status == QuestionStatus.CORRECT) question.stationId else null,
             revealedStationId = if (question.status == QuestionStatus.REVEALED) question.stationId else null,
-            lastWrongStationName = lastWrongStationName,
+            lastWrongStationId = lastWrongStationId,
+            foundStations = if (config.foundStationsDisplay == FoundStationsDisplay.COLORED_LOCKED) {
+                foundStationResults.toMap()
+            } else {
+                emptyMap()
+            },
             score = state.score,
             progress = (state.currentIndex + 1) to state.stationQueue.size
         )

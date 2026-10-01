@@ -24,11 +24,24 @@ sealed interface StationScope {
     data class ByLines(val lineIds: Set<String>) : StationScope
 }
 
+/**
+ * In map-click mode, how a station behaves once it's been found - a difficulty axis on its own,
+ * independent of [StationScope]/[GameConfig.showLines]. Ignored by the other two modes.
+ */
+enum class FoundStationsDisplay {
+    /** A found station looks and behaves like any other station (easy to mis-tap again). */
+    PLAIN,
+
+    /** A found station stays colored by how many attempts it took, and can't be tapped again. */
+    COLORED_LOCKED
+}
+
 /** Full configuration for one game session, chosen on the setup screen. */
 data class GameConfig(
     val mode: GameMode,
     val scope: StationScope,
-    val showLines: Boolean
+    val showLines: Boolean,
+    val foundStationsDisplay: FoundStationsDisplay = FoundStationsDisplay.PLAIN
 )
 
 /**
@@ -41,5 +54,5 @@ fun GameConfig.storageKey(): String {
         is StationScope.Essentials -> "ESSENTIALS"
         is StationScope.ByLines -> "LINES:" + scope.lineIds.sorted().joinToString(",")
     }
-    return "${mode.name}|$scopePart|lines=${if (showLines) 1 else 0}"
+    return "${mode.name}|$scopePart|lines=${if (showLines) 1 else 0}|found=${foundStationsDisplay.name}"
 }

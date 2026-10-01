@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.parismetro.quiz.MetroQuizApplication
+import com.parismetro.quiz.domain.model.FoundStationsDisplay
 import com.parismetro.quiz.domain.model.GameConfig
 import com.parismetro.quiz.domain.model.GameMode
 import com.parismetro.quiz.domain.model.MetroLine
@@ -52,6 +53,7 @@ fun GameSetupScreen(onBack: () -> Unit, onStart: (GameConfig) -> Unit) {
     var scopeChoice by rememberSaveable { mutableStateOf(ScopeChoice.ALL) }
     var selectedLineIds by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showLines by rememberSaveable { mutableStateOf(true) }
+    var foundStationsDisplay by rememberSaveable { mutableStateOf(FoundStationsDisplay.PLAIN) }
 
     val canStart = scopeChoice != ScopeChoice.BY_LINES || selectedLineIds.isNotEmpty()
 
@@ -106,6 +108,23 @@ fun GameSetupScreen(onBack: () -> Unit, onStart: (GameConfig) -> Unit) {
                 }
             }
 
+            if (mode == GameMode.MAP_CLICK) {
+                Section("Stations déjà trouvées") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            foundStationsDisplay == FoundStationsDisplay.PLAIN,
+                            { foundStationsDisplay = FoundStationsDisplay.PLAIN },
+                            { Text("Restent cliquables") }
+                        )
+                        FilterChip(
+                            foundStationsDisplay == FoundStationsDisplay.COLORED_LOCKED,
+                            { foundStationsDisplay = FoundStationsDisplay.COLORED_LOCKED },
+                            { Text("Restent colorées, verrouillées") }
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
                     val scope = when (scopeChoice) {
@@ -113,7 +132,7 @@ fun GameSetupScreen(onBack: () -> Unit, onStart: (GameConfig) -> Unit) {
                         ScopeChoice.ESSENTIALS -> StationScope.Essentials
                         ScopeChoice.BY_LINES -> StationScope.ByLines(selectedLineIds)
                     }
-                    onStart(GameConfig(mode, scope, showLines))
+                    onStart(GameConfig(mode, scope, showLines, foundStationsDisplay))
                 },
                 enabled = canStart,
                 modifier = Modifier.fillMaxWidth()

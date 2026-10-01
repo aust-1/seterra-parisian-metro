@@ -19,16 +19,23 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp
 import com.parismetro.quiz.domain.model.MapPoint
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.MissMarker
 import com.parismetro.quiz.domain.model.Station
 import com.parismetro.quiz.ui.theme.CorrectGreen
+import com.parismetro.quiz.ui.theme.FOUND_STATION_COLORS
 import com.parismetro.quiz.ui.theme.HighlightAmber
 import com.parismetro.quiz.ui.theme.IncorrectRed
 import com.parismetro.quiz.ui.theme.MissOrange
@@ -51,6 +58,10 @@ import kotlin.math.min
  * @param revealedStationId drawn blinking red - the player ran out of attempts; per Seterra,
  *   this doesn't auto-advance, tapping this exact station (while still [interactive]) is what
  *   the caller wires up to move on.
+ * @param foundStations map-click only: stationId -> miss count for already-resolved stations
+ *   this session, colored green/yellow/orange/red by that count instead of the default dot.
+ * @param lastWrongStationId the (wrong) station the player's last tap landed on - its name is
+ *   shown right next to it on the map, immediately, until the next tap or question.
  */
 @Composable
 fun MetroMapCanvas(
@@ -61,6 +72,8 @@ fun MetroMapCanvas(
     highlightedStationId: String? = null,
     correctStationId: String? = null,
     revealedStationId: String? = null,
+    foundStations: Map<String, Int> = emptyMap(),
+    lastWrongStationId: String? = null,
     missMarkers: List<MissMarker> = emptyList(),
     interactive: Boolean = false,
     onStationTapped: (Station) -> Unit = {},
@@ -69,6 +82,7 @@ fun MetroMapCanvas(
     val stationsById = remember(stations) { stations.associateBy { it.id } }
     val seinePoints = remember { SEINE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
     val peripheriquePoints = remember { PERIPHERIQUE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
+    val textMeasurer = rememberTextMeasurer()
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -176,8 +190,14 @@ fun MetroMapCanvas(
             val center = toScreen(station.x, station.y)
             val isInterchange = station.lineIds.size >= 2
             val radius = (if (isInterchange) 6f else 4f) * dotScaleFactor
-            drawCircle(color = Color.White, radius = radius, center = center)
-            drawCircle(color = Color.DarkGray, radius = radius, center = center, style = Stroke(width = 1.5f))
+            val foundTier = foundStations[station.id]
+            if (foundTier != null) {
+                val color = FOUND_STATION_COLORS[foundTier.coerceIn(0, FOUND_STATION_COLORS.lastIndex)]
+                drawCircle(color = color, radius = radius, center = center)
+            } else {
+                drawCircle(color = Color.White, radius = radius, center = center)
+                drawCircle(color = Color.DarkGray, radius = radius, center = center, style = Stroke(width = 1.5f))
+            }
         }
 
         missMarkers.forEach { marker ->
@@ -185,6 +205,23 @@ fun MetroMapCanvas(
             val arm = 8f
             drawLine(MissOrange, center + Offset(-arm, -arm), center + Offset(arm, arm), strokeWidth = 4f)
             drawLine(MissOrange, center + Offset(-arm, arm), center + Offset(arm, -arm), strokeWidth = 4f)
+        }
+
+        lastWrongStationId?.let { id ->
+            stationsById[id]?.let { station ->
+                val center = toScreen(station.x, station.y)
+                drawText(
+                    textMeasurer = textMeasurer,
+                    text = station.name,
+                    topLeft = Offset(center.x + 10f, center.y - 10f),
+                    style = TextStyle(
+                        color = MissOrange,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        shadow = Shadow(color = Color.White, blurRadius = 6f)
+                    )
+                )
+            }
         }
 
         highlightedStationId?.let { id ->
