@@ -9,7 +9,11 @@ plusieurs niveaux de difficulté, style visuel simple.
 - **3 modes de jeu** : cliquer sur la carte, QCM, taper le nom de la station.
 - **Difficulté réglable** : toutes les stations / stations "essentielles" (correspondances) /
   une sélection de lignes précises, avec ou sans les lignes affichées sur la carte.
-- **Carte schématique** avec zoom/pan tactile.
+- **Carte** avec zoom/pan tactile, posée sur la vraie géographie :
+  - la **Seine** d'après ses berges réelles, divisée autour de ses îles (Cité, Saint-Louis, la
+    Jatte, Saint-Denis…), sur toute l'emprise de la carte ;
+  - le **boulevard périphérique** selon son tracé exact ;
+  - les **20 arrondissements**, avec leur numéro.
 - **Progression locale** : meilleur score par configuration, stations les plus ratées.
 - **Aucune permission réseau** : les données (321 stations, 16 lignes) sont embarquées dans
   l'APK, rien n'est jamais envoyé ni téléchargé.
@@ -66,8 +70,9 @@ app/src/main/java/com/parismetro/quiz/
 ├── domain/        logique métier pure (moteurs de quiz, scoring, modèles) - sans Android
 ├── data/          assets JSON + persistance Room (scores, stats)
 └── ui/            écrans Compose, ViewModels, navigation
-app/src/main/assets/metro-data/   données stations.json / lines.json embarquées
-app/src/test/                      tests unitaires de la couche domaine
+app/src/main/assets/metro-data/   données embarquées : stations.json, lines.json, geography.json
+app/src/test/                      tests unitaires (domaine + géographie embarquée)
+scripts/                           génération des données (Python, stdlib uniquement)
 ```
 
 ## Origine des données
@@ -78,6 +83,41 @@ et `scripts/generate-metro-data.py` (Python, stdlib uniquement) pour le script q
 Elles ne changent pas à l'exécution : il n'y a pas d'appel réseau pour les récupérer. Pour les
 régénérer un jour (nouvelle station, ligne prolongée...), retélécharger le GTFS depuis
 `downloadUrl` dans `metro-source.json` et relancer le script.
+
+### Seine et périphérique
+
+`geography.json` contient la Seine et le boulevard périphérique, tracés d'après les coordonnées
+réelles d'[OpenStreetMap](https://www.openstreetmap.org/copyright) (© contributeurs
+OpenStreetMap, licence ODbL). Il est généré par `scripts/generate-geography.py` :
+
+- **Seine** : les surfaces d'eau nommées « La Seine », avec leurs îles en anneaux intérieurs.
+  Le dessin suit donc les berges, et le fleuve se divise de lui-même autour de chaque île.
+- **Périphérique** : les voies « Boulevard Périphérique Intérieur », raboutées en un anneau
+  fermé.
+- **Projection** : le script la recale sur les stations elles-mêmes. Il apparie environ 280
+  stations de `stations.json` à leurs coordonnées OSM, puis ajuste par moindres carrés le
+  `x = a·lon + b, y = c·lat + d` du script GTFS. L'écart médian est d'environ 1,6 unité de
+  carte. Le tracé tombe ainsi pile sous les stations et le long des arrondissements.
+- **Allègement** : les tracés sont découpés au cadre de la carte, puis simplifiés
+  (Douglas-Peucker), pour environ 1 200 points en tout.
+
+```bash
+python3 scripts/generate-geography.py                 # télécharge via l'API Overpass
+python3 scripts/generate-geography.py --cache osm/    # garde / réutilise les réponses
+```
+
+L'écran d'accueil affiche l'attribution des données, comme l'exige l'ODbL.
+
+### Arrondissements
+
+`ui/map/Arrondissements.kt` vient des limites officielles d'opendata.paris.fr, reprojetées
+dans le même repère et simplifiées.
+
+## Intégration continue
+
+`.github/workflows/android.yml` lance les tests unitaires, puis construit l'APK debug, à chaque
+push sur `main` et sur chaque PR. L'APK est téléchargeable dans les artefacts du run pendant 7
+jours.
 
 ## Problèmes courants
 
@@ -96,7 +136,7 @@ version de Gradle du projet, corrige-le dans Android Studio, pas dans le code :
 ## Check-list au premier build
 
 - [x] Le Gradle Sync se termine sans erreur de résolution de dépendances.
-- [x] `./gradlew test` passe (32/32, logique de jeu).
+- [x] `./gradlew test` passe (37/37 : logique de jeu et géographie embarquée).
 - [x] `./gradlew assembleDebug` compile l'appli et produit `app-debug.apk`.
 - [ ] L'appli s'installe sur un téléphone et le zoom/pan de la carte se sent naturel au
       toucher (c'est la partie la plus délicate à valider sans appareil physique - ajuste les

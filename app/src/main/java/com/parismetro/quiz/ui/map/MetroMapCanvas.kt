@@ -19,8 +19,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,6 +30,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
+import com.parismetro.quiz.domain.model.MapGeography
 import com.parismetro.quiz.domain.model.MapPoint
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.MissMarker
@@ -69,6 +70,7 @@ fun MetroMapCanvas(
     stations: List<Station>,
     lines: List<MetroLine>,
     modifier: Modifier = Modifier,
+    geography: MapGeography = MapGeography.EMPTY,
     showLines: Boolean = true,
     highlightedStationId: String? = null,
     correctStationId: String? = null,
@@ -81,8 +83,10 @@ fun MetroMapCanvas(
     onMapMissed: (MapPoint) -> Unit = {}
 ) {
     val stationsById = remember(stations) { stations.associateBy { it.id } }
-    val seinePoints = remember { SEINE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
-    val peripheriquePoints = remember { PERIPHERIQUE_WAYPOINTS.map { (x, y) -> Offset(x, y) } }
+    val seineRings = remember(geography) {
+        geography.seineRings.map { ring -> ring.map { Offset(it.x, it.y) } }
+    }
+    val peripheriquePoints = remember(geography) { geography.peripherique.map { Offset(it.x, it.y) } }
     val arrondissements = remember {
         ARRONDISSEMENTS.map { (num, points) ->
             val offsets = points.map { (x, y) -> Offset(x, y) }
@@ -171,17 +175,17 @@ fun MetroMapCanvas(
             )
         }
 
+        // The Seine's real water surface: riverbanks and islands wind in opposite directions, so
+        // the default non-zero fill leaves every island dry and the river splits around them.
+        // The thin same-colour stroke hides the anti-aliasing seams between OSM river sections.
+        if (seineRings.isNotEmpty()) {
+            val seine = Path().apply { fillType = PathFillType.NonZero }
+            seineRings.forEach { ring -> seine.addClosedRing(ring.map { toScreen(it.x, it.y) }) }
+            drawPath(path = seine, color = SeineBlue)
+            drawPath(path = seine, color = SeineBlue, style = Stroke(width = (0.6f * scale).coerceIn(0.5f, 2f)))
+        }
         drawPath(
-            path = smoothPath(seinePoints.map { toScreen(it.x, it.y) }, closed = false),
-            color = SeineBlue,
-            style = Stroke(
-                width = (20f * scale).coerceIn(5f, 34f),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-        drawPath(
-            path = smoothPath(peripheriquePoints.map { toScreen(it.x, it.y) }, closed = true),
+            path = polygonPath(peripheriquePoints.map { toScreen(it.x, it.y) }),
             color = PeripheriqueGray,
             style = Stroke(
                 width = (3f * scale).coerceIn(1f, 5f),
@@ -269,9 +273,8 @@ fun MetroMapCanvas(
     }
 }
 
-/** A closed straight-edge polygon through [points] - used for arrondissement borders, which are
- * already simplified to the point density they need, unlike the hand-picked Seine/ring-road
- * waypoints that benefit from [smoothPath]'s curve. */
+/** A closed straight-edge polygon through [points] - arrondissement borders and the
+ * Périphérique, both already simplified to the point density they need. */
 private fun polygonPath(points: List<Offset>): Path {
     val path = Path()
     if (points.isEmpty()) return path
@@ -287,31 +290,10 @@ private fun squaredDistance(x1: Float, y1: Float, x2: Float, y2: Float): Float {
     return dx * dx + dy * dy
 }
 
-/**
- * A smooth curve through [points] (quadratic Bézier through each point, ending at the midpoint
- * to the next one) rather than sharp straight segments - good enough to read as a winding river
- * or a ring road without needing real spline/GPS data. [closed] wraps the curve back to the
- * start instead of ending at the last point.
- */
-private fun smoothPath(points: List<Offset>, closed: Boolean): Path {
-    val path = Path()
-    if (points.isEmpty()) return path
-    if (points.size < 3) {
-        path.moveTo(points.first().x, points.first().y)
-        points.drop(1).forEach { path.lineTo(it.x, it.y) }
-        if (closed) path.close()
-        return path
-    }
-
-    // Looping back through the first couple of points lets the curve exit the wrap-around
-    // seam smoothly instead of with a sharp corner.
-    val pts = if (closed) points + points[0] + points[1] else points
-    path.moveTo(pts[0].x, pts[0].y)
-    for (i in 1 until pts.size - 1) {
-        val mid = Offset((pts[i].x + pts[i + 1].x) / 2f, (pts[i].y + pts[i + 1].y) / 2f)
-        path.quadraticTo(pts[i].x, pts[i].y, mid.x, mid.y)
-    }
-    path.lineTo(pts.last().x, pts.last().y)
-    if (closed) path.close()
-    return path
+/** Appends [points] to this path as one closed sub-path (no-op for fewer than 3 points). */
+private fun Path.addClosedRing(points: List<Offset>) {
+    if (points.size < 3) return
+    moveTo(points[0].x, points[0].y)
+    for (i in 1 until points.size) lineTo(points[i].x, points[i].y)
+    close()
 }
