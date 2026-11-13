@@ -40,6 +40,7 @@ fun TypeAnswerContent(
             MetroMapCanvas(
                 stations = state.stations,
                 lines = state.lines,
+                geography = state.geography,
                 showLines = state.showLines,
                 highlightedStationId = state.highlightedStationId,
                 interactive = false,

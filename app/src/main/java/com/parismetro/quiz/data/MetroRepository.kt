@@ -1,6 +1,7 @@
 package com.parismetro.quiz.data
 
 import android.content.Context
+import com.parismetro.quiz.domain.model.MapGeography
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.Station
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +12,8 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 /**
- * Loads the bundled metro network (stations + lines) from `assets/metro-data/`.
+ * Loads the bundled metro network (stations + lines) and the geography drawn under it (the
+ * Seine, the Périphérique) from `assets/metro-data/`.
  *
  * The data never changes at runtime and is small (a few hundred KB), so it's parsed once and
  * cached in memory for the app's lifetime - there is no network fetch and no database table
@@ -28,8 +30,18 @@ class MetroRepository(private val context: Context) {
     @Volatile
     private var cachedLines: List<MetroLine>? = null
 
+    @Volatile
+    private var cachedGeography: MapGeography? = null
+
     suspend fun getStations(): List<Station> = cachedStations ?: load().first
     suspend fun getLines(): List<MetroLine> = cachedLines ?: load().second
+
+    /** The Seine and the Périphérique (`geography.json`), drawn under the network. */
+    suspend fun getGeography(): MapGeography = cachedGeography ?: loadMutex.withLock {
+        cachedGeography ?: withContext(Dispatchers.IO) {
+            parseGeography(readAsset("metro-data/geography.json")).also { cachedGeography = it }
+        }
+    }
 
     /** Guarded by [loadMutex] so two concurrent first-callers don't both parse the assets. */
     private suspend fun load(): Pair<List<Station>, List<MetroLine>> = loadMutex.withLock {
