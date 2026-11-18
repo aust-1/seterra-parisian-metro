@@ -46,6 +46,7 @@ fun MapClickContent(
             MetroMapCanvas(
                 stations = state.stations,
                 lines = state.lines,
+                geography = state.geography,
                 showLines = state.showLines,
                 missMarkers = state.missMarkers,
                 correctStationId = state.correctStationId,

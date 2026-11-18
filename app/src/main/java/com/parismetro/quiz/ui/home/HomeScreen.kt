@@ -35,5 +35,13 @@ fun HomeScreen(onPlay: () -> Unit, onStats: () -> Unit) {
         Button(onClick = onPlay, modifier = Modifier.fillMaxWidth()) { Text("Jouer") }
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = onStats, modifier = Modifier.fillMaxWidth()) { Text("Statistiques") }
+        Spacer(Modifier.height(32.dp))
+        // Attribution requise par les licences des données embarquées (ODbL pour OSM).
+        Text(
+            "Données : Île-de-France Mobilités · Ville de Paris · © contributeurs OpenStreetMap (ODbL)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }

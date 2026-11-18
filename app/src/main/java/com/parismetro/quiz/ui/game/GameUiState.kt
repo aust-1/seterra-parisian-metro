@@ -3,6 +3,7 @@ package com.parismetro.quiz.ui.game
 import com.parismetro.quiz.domain.engine.QuestionStatus
 import com.parismetro.quiz.domain.model.GameConfig
 import com.parismetro.quiz.domain.model.GameMode
+import com.parismetro.quiz.domain.model.MapGeography
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.MissMarker
 import com.parismetro.quiz.domain.model.Station
@@ -15,6 +16,7 @@ sealed interface GameUiState {
     data class MapClick(
         val stations: List<Station>,
         val lines: List<MetroLine>,
+        val geography: MapGeography,
         val showLines: Boolean,
         val targetStationName: String,
         val missMarkers: List<MissMarker>,
@@ -39,6 +41,7 @@ sealed interface GameUiState {
         val gameMode: GameMode,
         val stations: List<Station>,
         val lines: List<MetroLine>,
+        val geography: MapGeography,
         val showLines: Boolean,
         val highlightedStationId: String,
         /** Only populated for [GameMode.MULTIPLE_CHOICE]. */

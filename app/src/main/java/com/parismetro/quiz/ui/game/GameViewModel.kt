@@ -20,6 +20,7 @@ import com.parismetro.quiz.domain.engine.StationScopeResolver
 import com.parismetro.quiz.domain.model.FoundStationsDisplay
 import com.parismetro.quiz.domain.model.GameConfig
 import com.parismetro.quiz.domain.model.GameMode
+import com.parismetro.quiz.domain.model.MapGeography
 import com.parismetro.quiz.domain.model.MapPoint
 import com.parismetro.quiz.domain.model.MetroLine
 import com.parismetro.quiz.domain.model.Station
@@ -54,6 +55,7 @@ class GameViewModel(
     private var allStations: List<Station> = emptyList()
     private var scopedStations: List<Station> = emptyList()
     private var lines: List<MetroLine> = emptyList()
+    private var geography: MapGeography = MapGeography.EMPTY
 
     private var mapClickState: MapClickQuizState? = null
     private var answerState: AnswerQuizState? = null
@@ -71,6 +73,7 @@ class GameViewModel(
         viewModelScope.launch {
             allStations = metroRepository.getStations()
             lines = metroRepository.getLines()
+            geography = metroRepository.getGeography()
             scopedStations = StationScopeResolver.resolve(config.scope, allStations)
             val ids = scopedStations.map { it.id }
 
@@ -217,6 +220,7 @@ class GameViewModel(
         uiState = GameUiState.MapClick(
             stations = scopedStations,
             lines = lines,
+            geography = geography,
             showLines = config.showLines,
             targetStationName = target.name,
             missMarkers = question.missMarkers,
@@ -243,6 +247,7 @@ class GameViewModel(
             gameMode = config.mode,
             stations = scopedStations,
             lines = lines,
+            geography = geography,
             showLines = config.showLines,
             highlightedStationId = target.id,
             options = if (config.mode == GameMode.MULTIPLE_CHOICE) currentOptions else null,
