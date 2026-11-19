@@ -151,8 +151,9 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
+/** One chip per line, toggled on and off - shared with the "Explorer la carte" filter. */
 @Composable
-private fun LineMultiSelector(lines: List<MetroLine>, selected: Set<String>, onToggle: (String) -> Unit) {
+internal fun LineMultiSelector(lines: List<MetroLine>, selected: Set<String>, onToggle: (String) -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)

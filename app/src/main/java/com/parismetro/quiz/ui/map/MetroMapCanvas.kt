@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -64,6 +65,8 @@ import kotlin.math.min
  *   instead of the default dot - see [FoundMarkerShape].
  * @param lastWrongStationId the (wrong) station the player's last tap landed on - its name is
  *   shown right next to it on the map, immediately, until the next tap or question.
+ * @param showStationNames study mode ("Explorer la carte"): every station on screen is named,
+ *   once zoomed in past [STATION_NAMES_MIN_SCALE] - below that the names would overlap.
  */
 @Composable
 fun MetroMapCanvas(
@@ -78,6 +81,7 @@ fun MetroMapCanvas(
     foundStations: Map<String, Int> = emptyMap(),
     lastWrongStationId: String? = null,
     missMarkers: List<MissMarker> = emptyList(),
+    showStationNames: Boolean = false,
     interactive: Boolean = false,
     onStationTapped: (Station) -> Unit = {},
     onMapMissed: (MapPoint) -> Unit = {}
@@ -94,7 +98,10 @@ fun MetroMapCanvas(
             Triple(num, offsets, centroid)
         }
     }
-    val textMeasurer = rememberTextMeasurer()
+    // Big enough a cache to hold every station name when they're all shown (study mode).
+    val textMeasurer = rememberTextMeasurer(cacheSize = if (showStationNames) stations.size + 32 else 8)
+    val nameColor = MaterialTheme.colorScheme.onSurface
+    val nameHalo = MaterialTheme.colorScheme.surface
 
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -222,6 +229,26 @@ fun MetroMapCanvas(
             } else {
                 drawCircle(color = Color.White, radius = radius, center = center)
                 drawCircle(color = Color.DarkGray, radius = radius, center = center, style = Stroke(width = 1.5f))
+            }
+        }
+
+        if (showStationNames && scale >= STATION_NAMES_MIN_SCALE) {
+            val nameStyle = TextStyle(
+                color = nameColor,
+                fontSize = 11.sp,
+                shadow = Shadow(color = nameHalo, blurRadius = 4f)
+            )
+            stations.forEach { station ->
+                val center = toScreen(station.x, station.y)
+                // Only what's on screen: zoomed in, most of the 300+ names are out of view.
+                if (center.x < -200f || center.x > size.width || center.y < -20f || center.y > size.height + 20f) {
+                    return@forEach
+                }
+                val label = textMeasurer.measure(station.name, nameStyle)
+                drawText(
+                    textLayoutResult = label,
+                    topLeft = Offset(center.x + 7f * dotScaleFactor, center.y - label.size.height / 2f)
+                )
             }
         }
 

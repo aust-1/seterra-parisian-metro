@@ -7,6 +7,9 @@ plusieurs niveaux de difficulté, style visuel simple.
 ## Fonctionnalités
 
 - **3 modes de jeu** : cliquer sur la carte, QCM, taper le nom de la station.
+- **Explorer la carte** : un mode d'étude, sans quiz. Tous les noms s'affichent une fois
+  zoomé, un appui sur une station montre ses lignes et ses correspondances, et le filtre par
+  ligne est le même que dans la configuration de partie.
 - **Difficulté réglable** : toutes les stations / stations "essentielles" (correspondances) /
   une sélection de lignes précises, avec ou sans les lignes affichées sur la carte. En mode
   carte, les stations déjà trouvées peuvent rester marquées selon le nombre d'erreurs. Chaque

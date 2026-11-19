@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.parismetro.quiz.domain.model.GameConfig
+import com.parismetro.quiz.ui.explore.ExploreScreen
 import com.parismetro.quiz.ui.game.GameScreen
 import com.parismetro.quiz.ui.game.GameSessionResult
 import com.parismetro.quiz.ui.home.HomeScreen
@@ -23,6 +24,7 @@ private object Routes {
     const val GAME = "game"
     const val RESULTS = "results"
     const val STATS = "stats"
+    const val EXPLORE = "explore"
 }
 
 /**
@@ -40,7 +42,8 @@ fun MetroApp() {
         composable(Routes.HOME) {
             HomeScreen(
                 onPlay = { navController.navigate(Routes.SETUP) },
-                onStats = { navController.navigate(Routes.STATS) }
+                onStats = { navController.navigate(Routes.STATS) },
+                onExplore = { navController.navigate(Routes.EXPLORE) }
             )
         }
 
@@ -96,6 +99,10 @@ fun MetroApp() {
 
         composable(Routes.STATS) {
             StatsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.EXPLORE) {
+            ExploreScreen(onBack = { navController.popBackStack() })
         }
     }
 }
