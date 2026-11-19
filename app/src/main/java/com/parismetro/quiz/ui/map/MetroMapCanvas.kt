@@ -37,7 +37,6 @@ import com.parismetro.quiz.domain.model.MissMarker
 import com.parismetro.quiz.domain.model.Station
 import com.parismetro.quiz.ui.theme.ArrondissementGray
 import com.parismetro.quiz.ui.theme.CorrectGreen
-import com.parismetro.quiz.ui.theme.FOUND_STATION_COLORS
 import com.parismetro.quiz.ui.theme.HighlightAmber
 import com.parismetro.quiz.ui.theme.IncorrectRed
 import com.parismetro.quiz.ui.theme.MissOrange
@@ -61,7 +60,8 @@ import kotlin.math.min
  *   this doesn't auto-advance, tapping this exact station (while still [interactive]) is what
  *   the caller wires up to move on.
  * @param foundStations map-click only: stationId -> miss count for already-resolved stations
- *   this session, colored green/yellow/orange/red by that count instead of the default dot.
+ *   this session, drawn as a dot/diamond/triangle/cross (green/gold/orange/red) by that count
+ *   instead of the default dot - see [FoundMarkerShape].
  * @param lastWrongStationId the (wrong) station the player's last tap landed on - its name is
  *   shown right next to it on the map, immediately, until the next tap or question.
  */
@@ -216,10 +216,9 @@ fun MetroMapCanvas(
             val center = toScreen(station.x, station.y)
             val isInterchange = station.lineIds.size >= 2
             val radius = (if (isInterchange) 6f else 4f) * dotScaleFactor
-            val foundTier = foundStations[station.id]
-            if (foundTier != null) {
-                val color = FOUND_STATION_COLORS[foundTier.coerceIn(0, FOUND_STATION_COLORS.lastIndex)]
-                drawCircle(color = color, radius = radius, center = center)
+            val missCount = foundStations[station.id]
+            if (missCount != null) {
+                drawFoundStationMarker(FoundMarkerShape.forMissCount(missCount), center, foundMarkerRadius(radius))
             } else {
                 drawCircle(color = Color.White, radius = radius, center = center)
                 drawCircle(color = Color.DarkGray, radius = radius, center = center, style = Stroke(width = 1.5f))

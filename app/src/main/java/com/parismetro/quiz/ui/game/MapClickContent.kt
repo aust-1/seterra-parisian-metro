@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.parismetro.quiz.domain.engine.QuestionStatus
 import com.parismetro.quiz.domain.model.MapPoint
 import com.parismetro.quiz.domain.model.Station
+import com.parismetro.quiz.ui.map.FoundStationsLegend
 import com.parismetro.quiz.ui.map.MetroMapCanvas
 import com.parismetro.quiz.ui.theme.IncorrectRed
 
@@ -26,8 +27,9 @@ import com.parismetro.quiz.ui.theme.IncorrectRed
  *   open (see [GameUiState.MapClick.lastWrongStationId]).
  * - Out of attempts: the correct station blinks red until the player taps it - that tap is what
  *   continues, not a generic "Continuer" button.
- * - If the "found stations stay colored" difficulty is on, resolved stations stay green/yellow/
- *   orange/red by attempt count and can't be tapped again (see [GameUiState.MapClick.foundStations]).
+ * - If the "found stations stay colored" difficulty is on, resolved stations stay marked by
+ *   attempt count - a shape and a color each, explained by a key under the map - and can't be
+ *   tapped again (see [GameUiState.MapClick.foundStations]).
  */
 @Composable
 fun MapClickContent(
@@ -58,6 +60,9 @@ fun MapClickContent(
                 onMapMissed = onMapMissed,
                 modifier = Modifier.fillMaxSize()
             )
+        }
+        if (state.showFoundLegend) {
+            FoundStationsLegend(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
         }
         Box(
             modifier = Modifier

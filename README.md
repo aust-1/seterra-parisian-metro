@@ -8,7 +8,10 @@ plusieurs niveaux de difficulté, style visuel simple.
 
 - **3 modes de jeu** : cliquer sur la carte, QCM, taper le nom de la station.
 - **Difficulté réglable** : toutes les stations / stations "essentielles" (correspondances) /
-  une sélection de lignes précises, avec ou sans les lignes affichées sur la carte.
+  une sélection de lignes précises, avec ou sans les lignes affichées sur la carte. En mode
+  carte, les stations déjà trouvées peuvent rester marquées selon le nombre d'erreurs. Chaque
+  état a sa forme (point, losange, triangle, croix) en plus de sa couleur, avec une légende sous
+  la carte : pas besoin de distinguer les couleurs.
 - **Carte** avec zoom/pan tactile, posée sur la vraie géographie :
   - la **Seine** d'après ses berges réelles, divisée autour de ses îles (Cité, Saint-Louis, la
     Jatte, Saint-Denis…), sur toute l'emprise de la carte ;
