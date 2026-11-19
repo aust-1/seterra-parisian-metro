@@ -10,9 +10,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.parismetro.quiz.domain.model.MapGeography
 import com.parismetro.quiz.domain.model.MapPoint
@@ -43,15 +44,15 @@ import com.parismetro.quiz.ui.theme.IncorrectRed
 import com.parismetro.quiz.ui.theme.MissOrange
 import com.parismetro.quiz.ui.theme.PeripheriqueGray
 import com.parismetro.quiz.ui.theme.SeineBlue
-import kotlin.math.min
 
 /**
  * Renders the schematic metro map and owns its own pan/zoom state.
  *
- * The map-space -> screen-space transform (a uniform [scale] plus an [offset], no rotation) is
- * applied by hand in [toScreen] rather than via `Modifier.graphicsLayer`, specifically so that
- * raw pointer coordinates from [pointerInput] stay in plain screen space and the exact same
- * [offset]/[scale] can be inverted for hit-testing - one transform, defined once, used both ways.
+ * The map-space -> screen-space transform (a uniform scale plus an offset, no rotation, both
+ * derived from the saved [MapViewport]) is applied by hand in `toScreen` rather than via
+ * `Modifier.graphicsLayer`, specifically so that raw pointer coordinates from [pointerInput]
+ * stay in plain screen space and the exact same offset/scale can be inverted for hit-testing -
+ * one transform, defined once, used both ways.
  *
  * @param interactive when true (map-click mode), taps resolve to [onStationTapped] /
  *   [onMapMissed]; when false (QCM / type-answer modes) the map is pan/zoom-only, used just to
@@ -96,9 +97,10 @@ fun MetroMapCanvas(
     }
     val textMeasurer = rememberTextMeasurer()
 
-    var scale by remember { mutableFloatStateOf(1f) }
-    var offset by remember { mutableStateOf(Offset.Zero) }
-    var fitted by remember { mutableStateOf(false) }
+    // Saveable, so a rotation or a theme switch (which recreate the activity) keeps the zoom
+    // and the spot the player was looking at - see MapViewport.
+    val viewportState = rememberSaveable(saver = MapViewportState.Saver) { MapViewportState() }
+    var viewSize by remember { mutableStateOf(IntSize.Zero) }
 
     val pulse = rememberInfiniteTransition(label = "highlight-pulse")
     val pulseRadius by pulse.animateFloat(
@@ -118,29 +120,28 @@ fun MetroMapCanvas(
     Canvas(
         modifier = modifier
             .onSizeChanged { size ->
-                if (!fitted && size.width > 0 && size.height > 0) {
-                    val fitScale = min(size.width / MAP_WIDTH, size.height / MAP_HEIGHT)
-                    scale = fitScale
-                    offset = Offset(
-                        (size.width - MAP_WIDTH * fitScale) / 2f,
-                        (size.height - MAP_HEIGHT * fitScale) / 2f
-                    )
-                    fitted = true
+                viewSize = size
+                // Fit the whole map the first time. Afterwards (rotation, split screen), a map the
+                // player zoomed or panned keeps its zoom and its centre on the new size; one still
+                // on the automatic framing is re-fitted to it.
+                if (size.width > 0 && size.height > 0) {
+                    val (w, h) = size.width.toFloat() to size.height.toFloat()
+                    viewportState.viewport = viewportState.viewport?.resized(w, h) ?: MapViewport.fitting(w, h)
                 }
             }
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, pan, zoom, _ ->
-                    val newScale = (scale * zoom).coerceIn(0.6f, 6f)
-                    // Keep the map point under the gesture's centroid fixed while scaling, then
-                    // apply the pan on top - see the class doc for why this math lives here.
-                    val mapCentroid = (centroid - offset) / scale
-                    offset = centroid - mapCentroid * newScale + pan
-                    scale = newScale
+                    val viewport = viewportState.viewport ?: return@detectTransformGestures
+                    viewportState.viewport = viewport.transformed(
+                        centroid.x, centroid.y, pan.x, pan.y, zoom,
+                        viewSize.width.toFloat(), viewSize.height.toFloat()
+                    )
                 }
             }
             .pointerInput(interactive) {
                 if (!interactive) return@pointerInput
                 detectTapGestures { tapOffset ->
+                    val (scale, offset) = viewportState.screenTransform(viewSize) ?: return@detectTapGestures
                     val mapPoint = (tapOffset - offset) / scale
                     val nearest = stations.minByOrNull { station ->
                         squaredDistance(station.x, station.y, mapPoint.x, mapPoint.y)
@@ -157,6 +158,7 @@ fun MetroMapCanvas(
                 }
             }
     ) {
+        val (scale, offset) = viewportState.screenTransform(viewSize) ?: return@Canvas
         fun toScreen(x: Float, y: Float) = Offset(offset.x + x * scale, offset.y + y * scale)
         val dotScaleFactor = scale.coerceIn(0.6f, 2.5f)
 
@@ -271,6 +273,15 @@ fun MetroMapCanvas(
             }
         }
     }
+}
+
+/** The current scale and the screen position of map point (0, 0), or null before the first layout. */
+private fun MapViewportState.screenTransform(viewSize: IntSize): Pair<Float, Offset>? {
+    val viewport = viewport ?: return null
+    return viewport.scale to Offset(
+        viewport.offsetX(viewSize.width.toFloat()),
+        viewport.offsetY(viewSize.height.toFloat())
+    )
 }
 
 /** A closed straight-edge polygon through [points] - arrondissement borders and the
