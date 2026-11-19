@@ -62,7 +62,8 @@ PATH_SELECTIONS = {
     "14": [("Aéroport d'Orly", "Saint-Denis - Pleyel")],
 }
 
-SVG_WIDTH = 1400
+# Cadre portrait : le réseau, projeté à l'échelle, est plus haut (~24 km) que large (~18 km).
+SVG_WIDTH = 890
 SVG_HEIGHT = 1120
 SVG_MARGIN = 72
 
@@ -156,6 +157,13 @@ def select_path(sequences: Counter, start: str, end: str) -> list[str]:
 def project_coordinates(
     samples_by_station: dict[str, list[tuple[float, float]]]
 ) -> dict[str, tuple[int, int]]:
+    """Projette lon/lat dans le cadre SVG_WIDTH x SVG_HEIGHT, à la même échelle sur les deux axes.
+
+    Projection équirectangulaire centrée sur la latitude moyenne du réseau : un degré de
+    longitude y vaut cos(latitude) degré de latitude (≈ 0,66 à Paris). Normaliser longitude et
+    latitude séparément pour remplir le cadre étirerait la carte d'environ 70 % en largeur.
+    Le réseau est mis à l'échelle de la dimension limitante, puis centré dans l'autre.
+    """
     averaged = {
         station: (
             sum(lon for lon, _ in samples) / len(samples),
@@ -168,16 +176,21 @@ def project_coordinates(
     lats = [lat for _, lat in averaged.values()]
     min_lon, max_lon = min(lons), max(lons)
     min_lat, max_lat = min(lats), max(lats)
+    lon_factor = math.cos(math.radians((min_lat + max_lat) / 2))
     usable_width = SVG_WIDTH - SVG_MARGIN * 2
     usable_height = SVG_HEIGHT - SVG_MARGIN * 2
 
+    span_x = (max_lon - min_lon) * lon_factor
+    span_y = max_lat - min_lat
+    scale = min(usable_width / span_x, usable_height / span_y)  # unités de carte par degré de latitude
+    offset_x = SVG_MARGIN + (usable_width - span_x * scale) / 2
+    offset_y = SVG_MARGIN + (usable_height - span_y * scale) / 2
+
     projected = {}
     for station, (lon, lat) in averaged.items():
-        normalized_x = (lon - min_lon) / (max_lon - min_lon)
-        normalized_y = (max_lat - lat) / (max_lat - min_lat)
         projected[station] = (
-            round(SVG_MARGIN + normalized_x * usable_width),
-            round(SVG_MARGIN + normalized_y * usable_height),
+            round(offset_x + (lon - min_lon) * lon_factor * scale),
+            round(offset_y + (max_lat - lat) * scale),
         )
 
     return projected
@@ -260,7 +273,7 @@ def generate(zip_path: Path, output_dir: Path) -> None:
         "svgViewBox": {"width": SVG_WIDTH, "height": SVG_HEIGHT},
         "lineCount": len(lines),
         "stationCount": len(stations),
-        "notes": "Les coordonnées x/y sont une projection locale simplifiée des arrêts GTFS pour une carte SVG custom.",
+        "notes": "Les coordonnées x/y sont une projection équirectangulaire des arrêts GTFS (même échelle sur les deux axes), pour une carte SVG custom.",
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)

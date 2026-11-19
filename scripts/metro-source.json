@@ -4,10 +4,10 @@
   "downloadUrl": "https://eu.ftp.opendatasoft.com/stif/GTFS/IDFM-gtfs.zip",
   "generatedAt": "2026-05-03",
   "svgViewBox": {
-    "width": 1400,
+    "width": 890,
     "height": 1120
   },
   "lineCount": 16,
   "stationCount": 321,
-  "notes": "Les coordonnées x/y sont une projection locale simplifiée des arrêts GTFS pour une carte SVG custom."
+  "notes": "Les coordonnées x/y sont une projection équirectangulaire des arrêts GTFS (même échelle sur les deux axes), pour une carte SVG custom."
 }
