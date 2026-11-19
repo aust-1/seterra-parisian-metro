@@ -233,6 +233,7 @@ class GameViewModel(
             } else {
                 emptyMap()
             },
+            showFoundLegend = config.foundStationsDisplay == FoundStationsDisplay.COLORED_LOCKED,
             score = state.score,
             progress = (state.currentIndex + 1) to state.stationQueue.size
         )

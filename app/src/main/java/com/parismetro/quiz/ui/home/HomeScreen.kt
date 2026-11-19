@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HomeScreen(onPlay: () -> Unit, onStats: () -> Unit) {
+fun HomeScreen(onPlay: () -> Unit, onStats: () -> Unit, onExplore: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -33,6 +33,8 @@ fun HomeScreen(onPlay: () -> Unit, onStats: () -> Unit) {
         )
         Spacer(Modifier.height(32.dp))
         Button(onClick = onPlay, modifier = Modifier.fillMaxWidth()) { Text("Jouer") }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = onExplore, modifier = Modifier.fillMaxWidth()) { Text("Explorer la carte") }
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = onStats, modifier = Modifier.fillMaxWidth()) { Text("Statistiques") }
         Spacer(Modifier.height(32.dp))
