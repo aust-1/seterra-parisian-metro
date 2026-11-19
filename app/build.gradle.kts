@@ -6,6 +6,12 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Signature release : uniquement quand le keystore est fourni (workflow Release, voir README).
+// Sans lui, assembleRelease produit un APK non signé et le build local ne change pas.
+val releaseKeystore = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+    ?.let(::file)
+    ?.takeIf { it.exists() }
+
 android {
     namespace = "com.parismetro.quiz"
     compileSdk = 35
@@ -14,14 +20,29 @@ android {
         applicationId = "com.parismetro.quiz"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // Fixés par le tag vX.Y.Z dans le workflow Release (-PversionName / -PversionCode).
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("versionName").orNull ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseKeystore != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
