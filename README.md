@@ -42,9 +42,24 @@ stations) est en Kotlin pur, testée sans dépendance Android :
 
 Ou, dans Android Studio : clic droit sur `app/src/test` → **Run Tests**.
 
-## Installer l'app sur ton téléphone (usage personnel)
+## Installer l'app sur ton téléphone
 
-Pas de Play Store : on génère un APK et on l'installe directement.
+### La dernière version publiée (le plus simple)
+
+Pas de Play Store : chaque version est publiée comme APK signé dans les
+[Releases GitHub](https://github.com/aust-1/seterra-parisian-metro/releases/latest).
+
+1. Sur le téléphone, ouvrir la dernière Release et télécharger `quiz-metro-paris-vX.Y.Z.apk`.
+2. L'ouvrir pour l'installer. Android demande la première fois d'autoriser l'installation
+   depuis cette source (le navigateur ou le gestionnaire de fichiers).
+3. Pour mettre à jour, installer l'APK d'une Release plus récente par-dessus : les scores et
+   statistiques sont conservés.
+
+Si une version **debug** (construite à la main, voir ci-dessous) est déjà installée, il faut la
+désinstaller d'abord, car elle n'est pas signée avec la même clé. Ses statistiques sont alors
+perdues.
+
+### Construire l'APK soi-même (debug)
 
 1. Android Studio → **Build → Build App Bundle(s) / APK(s) → Build APK(s)**.
 2. Une fois le build terminé, cliquer sur **locate** dans la notification (le fichier est dans
@@ -59,9 +74,40 @@ Alternative en une commande, téléphone branché en USB avec le débogage USB a
 ```
 
 L'APK debug n'est pas destiné au Play Store mais convient très bien à une installation
-manuelle sur ton propre appareil. Si tu veux un jour publier l'app ou distribuer un APK signé
-"release", il faudra générer un keystore (Build → Generate Signed App Bundle / APK) - inutile
-pour un usage strictement personnel.
+manuelle sur ton propre appareil.
+
+## Publier une version
+
+Pousser un tag `vX.Y.Z` lance `.github/workflows/release.yml`. Le workflow passe les tests,
+construit l'APK release, le signe, vérifie la signature et le publie dans une Release GitHub
+avec des notes générées. Le tag fixe aussi la version de l'app : `versionName = X.Y.Z` et
+`versionCode = X·10000 + Y·100 + Z` (Y et Z sous 100).
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+**Une seule fois avant la première version** : créer le keystore de signature et le confier
+aux secrets du dépôt. Le keystore ne va **jamais** dans le dépôt (`*.jks` et `*.keystore` sont
+ignorés par git).
+
+```bash
+keytool -genkeypair -v -keystore release.jks -alias quiz-metro -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 release.jks   # valeur du secret ANDROID_KEYSTORE_BASE64
+```
+
+Puis, dans **Settings → Secrets and variables → Actions** du dépôt :
+
+| Secret | Valeur |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | le keystore encodé en base64 (commande ci-dessus) |
+| `ANDROID_KEYSTORE_PASSWORD` | le mot de passe du keystore |
+| `ANDROID_KEY_ALIAS` | l'alias de la clé (`quiz-metro` ci-dessus) |
+| `ANDROID_KEY_PASSWORD` | le mot de passe de la clé (le même que celui du keystore, par défaut) |
+
+Garde une copie du keystore et des mots de passe hors de GitHub, par exemple dans un
+gestionnaire de mots de passe. Sans eux, impossible de publier une mise à jour installable
+par-dessus les versions précédentes.
 
 ## Structure du projet
 
@@ -117,7 +163,8 @@ dans le même repère et simplifiées.
 
 `.github/workflows/android.yml` lance les tests unitaires, puis construit l'APK debug, à chaque
 push sur `main` et sur chaque PR. L'APK est téléchargeable dans les artefacts du run pendant 7
-jours.
+jours. Les versions signées sont publiées par `.github/workflows/release.yml` (voir « Publier
+une version »).
 
 ## Problèmes courants
 
