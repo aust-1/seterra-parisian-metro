@@ -95,7 +95,13 @@ fun MetroApp() {
         }
 
         composable(Routes.STATS) {
-            StatsScreen(onBack = { navController.popBackStack() })
+            StatsScreen(
+                onBack = { navController.popBackStack() },
+                onPractice = { config ->
+                    pendingConfig = config
+                    navController.navigate(Routes.GAME)
+                }
+            )
         }
     }
 }

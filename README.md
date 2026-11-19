@@ -14,7 +14,9 @@ plusieurs niveaux de difficulté, style visuel simple.
     Jatte, Saint-Denis…), sur toute l'emprise de la carte ;
   - le **boulevard périphérique** selon son tracé exact ;
   - les **20 arrondissements**, avec leur numéro.
-- **Progression locale** : meilleur score par configuration, stations les plus ratées.
+- **Progression locale** : meilleur score par configuration, stations les plus ratées, et
+  réussite au premier essai **par ligne**, de la plus faible à la plus forte, avec un bouton
+  « S'entraîner » qui lance une partie sur cette ligne.
 - **Aucune permission réseau** : les données (321 stations, 16 lignes) sont embarquées dans
   l'APK, rien n'est jamais envoyé ni téléchargé.
 
