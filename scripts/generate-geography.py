@@ -2,7 +2,7 @@
 """Génère le tracé réel de la Seine et du boulevard périphérique pour la carte de l'app.
 
 Sortie : app/src/main/assets/metro-data/geography.json, dans le même repère que les x/y des
-stations (viewBox 1400 x 1120).
+stations (viewBox 890 x 1120).
 
 Données : OpenStreetMap (© contributeurs OpenStreetMap, licence ODbL), via l'API Overpass.
 - Seine : surfaces d'eau (natural=water + water=river) nommées « La Seine », avec leurs îles
@@ -12,7 +12,8 @@ Données : OpenStreetMap (© contributeurs OpenStreetMap, licence ODbL), via l'A
   anneau fermé.
 
 Projection : celle de scripts/generate-metro-data.py est linéaire par axe (x = a·lon + b,
-y = c·lat + d), mais ses bornes dépendaient du GTFS du moment. Plutôt que de la reconstituer,
+y = c·lat + d, avec a = |c|·cos(latitude) : même échelle sur les deux axes), mais ses bornes
+dépendaient du GTFS du moment. Plutôt que de la reconstituer,
 ce script la recale par moindres carrés sur les stations de stations.json, appariées par nom
 aux stations de métro d'OpenStreetMap : le tracé tombe exactement sous les points de la carte.
 
@@ -39,13 +40,13 @@ ROOT = Path(__file__).resolve().parent.parent
 STATIONS = ROOT / "app/src/main/assets/metro-data/stations.json"
 OUTPUT = ROOT / "app/src/main/assets/metro-data/geography.json"
 
-MAP_WIDTH, MAP_HEIGHT = 1400, 1120
+MAP_WIDTH, MAP_HEIGHT = 890, 1120
 CLIP_MARGIN = 40  # au-delà, rien n'est visible même en dézoomant au maximum
 SEINE_TOLERANCE = 0.2  # simplification Douglas-Peucker, en unités de carte
 PERIPHERIQUE_TOLERANCE = 0.3
 MAX_MEDIAN_RESIDUAL = 4.0  # au-delà, l'appariement des stations est suspect
 
-# Emprise large de la carte (le recalage donne l'emprise exacte, ~2,21-2,50 E / 48,71-48,96 N).
+# Emprise large de la carte (le recalage donne l'emprise exacte, ~2,20-2,51 E / 48,71-48,96 N).
 BBOX = "48.69,2.19,48.98,2.52"
 PERIPHERIQUE_BBOX = "48.80,2.22,48.91,2.43"
 OVERPASS_MIRRORS = (

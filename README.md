@@ -84,6 +84,11 @@ Elles ne changent pas à l'exécution : il n'y a pas d'appel réseau pour les r�
 régénérer un jour (nouvelle station, ligne prolongée...), retélécharger le GTFS depuis
 `downloadUrl` dans `metro-source.json` et relancer le script.
 
+Le script projette les arrêts en équirectangulaire : un degré de longitude vaut cos(latitude)
+degré de latitude (≈ 0,66 à Paris), si bien qu'un kilomètre fait le même nombre d'unités de
+carte (≈ 40) dans les deux directions. Le cadre est donc en portrait (890 × 1120) : le réseau
+est plus haut (≈ 24 km) que large (≈ 18 km). `MapProjectionTest` vérifie ces proportions.
+
 ### Seine et périphérique
 
 `geography.json` contient la Seine et le boulevard périphérique, tracés d'après les coordonnées
@@ -96,8 +101,8 @@ OpenStreetMap, licence ODbL). Il est généré par `scripts/generate-geography.p
   fermé.
 - **Projection** : le script la recale sur les stations elles-mêmes. Il apparie environ 280
   stations de `stations.json` à leurs coordonnées OSM, puis ajuste par moindres carrés le
-  `x = a·lon + b, y = c·lat + d` du script GTFS. L'écart médian est d'environ 1,6 unité de
-  carte. Le tracé tombe ainsi pile sous les stations et le long des arrondissements.
+  `x = a·lon + b, y = c·lat + d` du script GTFS (avec `a = |c|·cos(latitude)`). L'écart
+  médian est d'environ 1,3 unité de carte. Le tracé tombe ainsi pile sous les stations et le long des arrondissements.
 - **Allègement** : les tracés sont découpés au cadre de la carte, puis simplifiés
   (Douglas-Peucker), pour environ 1 200 points en tout.
 
