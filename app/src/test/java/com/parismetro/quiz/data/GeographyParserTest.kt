@@ -41,17 +41,17 @@ class GeographyParserTest {
         assertTrue("islands (reverse winding) expected", windings.any { !it })
 
         // Cité station stands on Île de la Cité: dry, with water on both arms around it.
-        assertEquals(0, winding(bundled.seineRings, 664f, 479f))
-        assertEquals(1, winding(bundled.seineRings, 635.3f, 464.6f)) // grand bras, au Pont Neuf
-        assertEquals(0, winding(bundled.seineRings, 710f, 493.6f)) // Île Saint-Louis
+        assertEquals(0, winding(bundled.seineRings, 423.7f, 479f))
+        assertEquals(1, winding(bundled.seineRings, 406.7f, 464.6f)) // grand bras, au Pont Neuf
+        assertEquals(0, winding(bundled.seineRings, 450.9f, 493.6f)) // Île Saint-Louis
     }
 
     @Test
     fun `the Périphérique rings central Paris and leaves La Défense out`() {
         val ring = listOf(bundled.peripherique)
         assertTrue(bundled.peripherique.size > 50)
-        assertEquals(1, Math.abs(winding(ring, 664f, 461f))) // Châtelet
-        assertEquals(0, winding(ring, 115f, 312f)) // La Défense - Grande Arche
+        assertEquals(1, Math.abs(winding(ring, 424f, 461f))) // Châtelet
+        assertEquals(0, winding(ring, 99f, 312f)) // La Défense - Grande Arche
     }
 
     @Test
@@ -59,7 +59,7 @@ class GeographyParserTest {
         val points = bundled.seineRings.flatten() + bundled.peripherique
         assertFalse(points.isEmpty())
         points.forEach { p ->
-            assertTrue("$p", p.x in -41f..1441f && p.y in -41f..1161f)
+            assertTrue("$p", p.x in -41f..931f && p.y in -41f..1161f)
         }
     }
 
