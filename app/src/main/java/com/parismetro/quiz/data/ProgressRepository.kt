@@ -3,6 +3,7 @@ package com.parismetro.quiz.data
 import com.parismetro.quiz.data.db.AppDatabase
 import com.parismetro.quiz.data.db.entity.GameResultEntity
 import com.parismetro.quiz.data.db.entity.StationStatEntity
+import com.parismetro.quiz.domain.model.StationProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -22,7 +23,8 @@ class ProgressRepository(private val db: AppDatabase) {
                     seen = existing.seen + 1,
                     correct = existing.correct + if (correct) 1 else 0,
                     revealed = existing.revealed + if (correct) 0 else 1,
-                    misses = existing.misses + missCount
+                    misses = existing.misses + missCount,
+                    firstTry = existing.firstTry + if (correct && missCount == 0) 1 else 0
                 )
             )
         }
@@ -44,6 +46,12 @@ class ProgressRepository(private val db: AppDatabase) {
 
     suspend fun gamesPlayed(configKey: String): Int =
         withContext(Dispatchers.IO) { db.gameResultDao().gamesPlayed(configKey) }
+
+    /** Lifetime record of every station asked at least once, for the per-line stats. */
+    suspend fun stationProgress(): List<StationProgress> =
+        withContext(Dispatchers.IO) {
+            db.stationStatDao().allPlayed().map { StationProgress(it.stationId, it.seen, it.firstTry) }
+        }
 
     suspend fun weakestStations(limit: Int = 10): List<StationStatEntity> =
         withContext(Dispatchers.IO) { db.stationStatDao().weakestStations(limit) }

@@ -14,6 +14,10 @@ interface StationStatDao {
     @Upsert
     suspend fun upsert(stat: StationStatEntity)
 
+    /** Every station asked at least once - the per-line stats are computed from them. */
+    @Query("SELECT * FROM station_stats WHERE seen > 0")
+    suspend fun allPlayed(): List<StationStatEntity>
+
     /** Stations the player struggles with most, ranked by misses + reveals (most first). */
     @Query(
         """

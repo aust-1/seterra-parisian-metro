@@ -1,5 +1,6 @@
 package com.parismetro.quiz.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,5 +12,8 @@ data class StationStatEntity(
     val seen: Int = 0,
     val correct: Int = 0,
     val revealed: Int = 0,
-    val misses: Int = 0
+    val misses: Int = 0,
+    /** Answered right with no miss before (always the case for a correct QCM/typed answer). */
+    @ColumnInfo(defaultValue = "0")
+    val firstTry: Int = 0
 )
