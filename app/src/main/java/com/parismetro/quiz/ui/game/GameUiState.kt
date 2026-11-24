@@ -33,6 +33,8 @@ sealed interface GameUiState {
          * [com.parismetro.quiz.domain.model.FoundStationsDisplay.COLORED_LOCKED] is on.
          */
         val foundStations: Map<String, Int>,
+        /** Whether found stations are marked at all, i.e. whether to show the markers' key. */
+        val showFoundLegend: Boolean,
         val score: Int,
         val progress: Pair<Int, Int>
     ) : GameUiState
