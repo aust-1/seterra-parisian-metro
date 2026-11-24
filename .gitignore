@@ -15,6 +15,10 @@ gradle-app.setting
 !gradle-wrapper.jar
 .gradletasknamecache
 
+# Keystores de signature : uniquement dans les secrets GitHub, jamais dans le dépôt
+*.jks
+*.keystore
+
 # OS / editor
 *.log
 *.local

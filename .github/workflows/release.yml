@@ -1,0 +1,85 @@
+name: Release
+# Un tag vX.Y.Z publie une Release GitHub avec l'APK release signé (voir README, « Publier une
+# version »). Le keystore et ses mots de passe viennent des secrets du dépôt, jamais du code.
+on:
+  push:
+    tags: ['v*.*.*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # créer la Release et y joindre l'APK
+
+jobs:
+  release:
+    name: APK release signé
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v6.4.1
+
+      - name: Version tirée du tag
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Le tag « $tag » doit être de la forme vX.Y.Z"; exit 1
+          fi
+          major=${BASH_REMATCH[1]} minor=${BASH_REMATCH[2]} patch=${BASH_REMATCH[3]}
+          if (( minor > 99 || patch > 99 )); then
+            echo "::error::versionCode = X·10000 + Y·100 + Z : Y et Z doivent rester sous 100"; exit 1
+          fi
+          {
+            echo "name=${major}.${minor}.${patch}"
+            echo "code=$(( major * 10000 + minor * 100 + patch ))"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Keystore
+        run: |
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name manquant (Settings → Secrets and variables → Actions, voir README)"; exit 1
+            fi
+          done
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Tests unitaires
+        run: ./gradlew --no-daemon test
+
+      - name: APK release
+        run: >-
+          ./gradlew --no-daemon assembleRelease
+          -PversionName=${{ steps.version.outputs.name }}
+          -PversionCode=${{ steps.version.outputs.code }}
+
+      - name: Vérification de la signature
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          "$apksigner" verify --print-certs "$apk"
+          mv "$apk" "quiz-metro-paris-${GITHUB_REF_NAME}.apk"
+
+      - name: Release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" "quiz-metro-paris-${GITHUB_REF_NAME}.apk"
+          --title "Quiz Métro Paris ${GITHUB_REF_NAME}"
+          --generate-notes
+          --verify-tag
+
+      - name: Nettoyage du keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
